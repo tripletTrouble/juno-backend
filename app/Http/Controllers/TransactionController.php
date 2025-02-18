@@ -47,7 +47,7 @@ class TransactionController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Transaction $transaction)
+    public function show(string $organization_id, Transaction $transaction)
     {
         return $this->sendJson($transaction);
     }
@@ -55,7 +55,7 @@ class TransactionController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Transaction $transaction)
+    public function update(Request $request, string $organization_id, Transaction $transaction)
     {
         $validated = $request->validate([
             'date' => 'required|string|date',
@@ -74,7 +74,7 @@ class TransactionController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Transaction $transaction)
+    public function destroy(string $organization_id, Transaction $transaction)
     {
         $transaction->delete();
 

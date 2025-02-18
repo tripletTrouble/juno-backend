@@ -44,7 +44,7 @@ class CategoryController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Category $category)
+    public function show(string $organization_id, Category $category)
     {
         return $this->sendJson($category);
     }
@@ -52,7 +52,7 @@ class CategoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Category $category)
+    public function update(Request $request, string $organization_id, Category $category)
     {
         $validated = $request->validate([
             'type' => 'required|numeric|in:1,2',
@@ -69,7 +69,7 @@ class CategoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Category $category)
+    public function destroy(string $organization_id, Category $category)
     {
         $category->delete();
 
