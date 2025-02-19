@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Organization;
-use App\Models\Transaction;
 use App\Traits\InteractsWithJson;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 
 class TransactionController extends Controller
 {
@@ -18,10 +19,18 @@ class TransactionController extends Controller
     public function index(Request $request, Organization $organization)
     {
         $result = $organization->transactions()
-            ->when($request->get('type'), fn(HasMany $builder) => $builder->where('type', $request->get('type')))
-            ->paginate(10);
+            ->when(
+                $request->get('from') && $request->get('to'),
+                function (BUilder $builder) use ($request) {
+                    return $builder->whereBetween('date', [$request->get('from'), $request->get('to')]);
+                },
+                function (Builder $builder) use ($request) {
+                    return $builder->whereBetween('date', [now()->startOfMonth(), now()->endOfMonth()]);
+                }
+            )
+            ->get();
 
-        return $this->sendJson($request);
+        return $this->sendJson($result);
     }
 
     /**
@@ -34,10 +43,18 @@ class TransactionController extends Controller
             'title' => 'required|string',
             'type' => 'required|numeric|in:1,2',
             'amount' => 'required|numeric',
-            'category_id' => 'nullable|numeric',
-            'user_id' => $request->user()->id,
+            'category_id' => [
+                'nullable',
+                'numeric',
+                Rule::exists('categories', 'id')
+                    ->where('type', $request->type)
+                    ->where('organization_id', $organization->id)
+            ],
             'description' => 'nullable|string'
         ]);
+
+        $validated['user_id'] = $request->user()->id;
+        $validated['date'] = Carbon::parse($validated['date']);
 
         $organization->transactions()->create($validated);
 
@@ -47,15 +64,17 @@ class TransactionController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $organization_id, Transaction $transaction)
+    public function show(Organization $organization, string $transaction_id)
     {
+        $transaction = $organization->transactions()->findOrFail($transaction_id);
+
         return $this->sendJson($transaction);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $organization_id, Transaction $transaction)
+    public function update(Request $request, Organization $organization, string $transaction_id)
     {
         $validated = $request->validate([
             'date' => 'required|string|date',
@@ -66,6 +85,7 @@ class TransactionController extends Controller
             'description' => 'nullable|string'
         ]);
 
+        $transaction = $organization->transactions()->findOrFail($transaction_id);
         $transaction->update($validated);
 
         return $this->sendJson(null, message: 'Transaksi berhasil diperbarui!');
@@ -74,8 +94,9 @@ class TransactionController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $organization_id, Transaction $transaction)
+    public function destroy(Organization $organization, string $transaction_id)
     {
+        $transaction = $organization->transactions()->findOrFail($transaction_id);
         $transaction->delete();
 
         return $this->sendJson(null, message: 'Transaksi telah dihapus!');

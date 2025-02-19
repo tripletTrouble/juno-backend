@@ -44,15 +44,17 @@ class CategoryController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $organization_id, Category $category)
+    public function show(Organization $organization, string $category_id)
     {
+        $category = $organization->categories()->findOrFail($category_id);
+
         return $this->sendJson($category);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $organization_id, Category $category)
+    public function update(Request $request, Organization $organization, string $category_id)
     {
         $validated = $request->validate([
             'type' => 'required|numeric|in:1,2',
@@ -60,6 +62,8 @@ class CategoryController extends Controller
             'color' => 'nullable|string|hex_color',
             'description' => 'nullable|string'
         ]);
+
+        $category = $organization->categories()->findOrFail($category_id);
 
         $category->update($validated);
 
@@ -69,8 +73,9 @@ class CategoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $organization_id, Category $category)
+    public function destroy(Organization $organization, string $category_id)
     {
+        $category = $organization->categories()->findOrFail($category_id);
         $category->delete();
 
         return $this->sendJson(null, message: 'Kategori telah dihapus');
